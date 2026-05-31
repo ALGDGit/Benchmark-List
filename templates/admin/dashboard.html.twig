@@ -1,0 +1,28 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Control panel{% endblock %}
+
+{% block admin %}
+<h1>Control panel</h1>
+<div class="stats">
+    <div class="stat-card">
+        <strong>{{ categoryCount }}</strong>
+        <span>Categories</span>
+    </div>
+    <div class="stat-card">
+        <strong>{{ itemCount|number_format(0, '.', ',') }}</strong>
+        <span>Items</span>
+    </div>
+</div>
+
+<div class="admin-varnish-actions">
+    <form method="post" action="{{ path('admin_varnish_purge_all') }}" onsubmit="return confirm('Purge all cached list and category API responses in Varnish?');">
+        <input type="hidden" name="_token" value="{{ csrf_token('varnish-purge-all') }}">
+        <button type="submit" class="btn btn-outline">Purge all Varnish cache</button>
+    </form>
+    <form method="post" action="{{ path('admin_symfony_refresh_cache') }}" onsubmit="return confirm('Clear and warm Symfony cache, then restart the web container? The page will reload in a few seconds.');">
+        <input type="hidden" name="_token" value="{{ csrf_token('symfony-refresh-cache') }}">
+        <button type="submit" class="btn btn-outline">Refresh Symfony cache &amp; restart web</button>
+    </form>
+</div>
+{% endblock %}

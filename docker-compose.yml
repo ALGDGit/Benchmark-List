@@ -1,0 +1,89 @@
+services:
+  varnish:
+    image: varnish:7.5
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/varnish/default.vcl:/etc/varnish/default.vcl:ro
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      VARNISH_SIZE: 256M
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/html
+      - ./docker/php/nginx.conf:/etc/nginx/sites-available/default:ro
+      # Avoid Symfony cache permission errors on Windows bind mounts
+      - app_cache:/var/www/html/var/cache
+      - app_log:/var/www/html/var/log
+      # Lets admin "Refresh Symfony cache & restart web" restart this container
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: "0"
+      DATABASE_URL: mysql://benchmark:benchmark@mysql:3306/benchmark?serverVersion=8.0&charset=utf8mb4
+      REDIS_URL: redis://redis:6379
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      VARNISH_URL: http://varnish:80
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1/health.php"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 120s
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: benchmark
+      MYSQL_USER: benchmark
+      MYSQL_PASSWORD: benchmark
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ubenchmark", "-pbenchmark"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  mysql_data:
+  es_data:
+  app_cache:
+  app_log:

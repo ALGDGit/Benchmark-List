@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<div class="admin-layout">
+    <aside class="admin-nav">
+        <h2>Administration</h2>
+        <a href="{{ path('admin_dashboard') }}">Overview</a>
+        <a href="{{ path('admin_slots') }}">Homepage lists</a>
+        <a href="{{ path('admin_categories') }}">Categories</a>
+        <a href="{{ path('admin_items') }}">Items</a>
+    </aside>
+    <section class="admin-content">
+        {% block admin %}{% endblock %}
+    </section>
+</div>
+{% endblock %}

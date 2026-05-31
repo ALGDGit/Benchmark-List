@@ -1,0 +1,14 @@
+<li class="activity-item activity-{{ entry.source }}" data-id="{{ entry.id }}">
+    <div class="activity-meta">
+        <span class="badge badge-{{ entry.source }}">{{ entry.source }}</span>
+        <code class="activity-action">{{ entry.action }}</code>
+        <time datetime="{{ entry.at }}">{{ entry.at|date('H:i:s') }}</time>
+    </div>
+    <p class="activity-message">{{ entry.message }}</p>
+    {% if entry.context is not empty %}
+        <details class="activity-context">
+            <summary>Details</summary>
+            <pre>{{ entry.context|json_encode }}</pre>
+        </details>
+    {% endif %}
+</li>

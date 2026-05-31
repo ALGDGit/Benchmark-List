@@ -1,0 +1,33 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+parameters:
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\Service\Elasticsearch\ItemSearchService:
+        arguments:
+            $elasticsearchUrl: '%env(ELASTICSEARCH_URL)%'
+
+    App\Service\SymfonyCacheRefresher:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Service\VarnishPurger:
+        arguments:
+            $varnishUrl: '%env(VARNISH_URL)%'
+
+    App\Service\Activity\ActivityLogger:
+        arguments:
+            $redisUrl: '%env(REDIS_URL)%'
+            $projectDir: '%kernel.project_dir%'

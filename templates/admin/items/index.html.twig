@@ -1,0 +1,35 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Items{% endblock %}
+
+{% block admin %}
+<div class="toolbar">
+    <h1>Items (latest 50)</h1>
+    <a href="{{ path('admin_item_new') }}" class="btn">New item</a>
+</div>
+<table class="data-table">
+    <thead>
+        <tr><th>ID</th><th>Name</th><th>Category</th><th></th></tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.category.name }}</td>
+            <td class="actions">
+                <a href="{{ path('admin_item_edit', {id: item.id}) }}">Edit</a>
+                <form method="post" action="{{ path('admin_item_delete', {id: item.id}) }}" onsubmit="return confirm('Delete this item?');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete-item' ~ item.id) }}">
+                    <button type="submit" class="link-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if page > 1 %}
+    <a href="{{ path('admin_items', {page: page - 1}) }}">← Previous</a>
+{% endif %}
+<a href="{{ path('admin_items', {page: page + 1}) }}">Next →</a>
+{% endblock %}

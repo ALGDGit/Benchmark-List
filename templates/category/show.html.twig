@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ category.name }} — Benchmark List{% endblock %}
+
+{% block body %}
+<section class="hero">
+    <p class="breadcrumb"><a href="{{ path('app_categories') }}">Categories</a> / {{ category.name }}</p>
+    <h1>{{ category.name }}</h1>
+    <p>{{ totalItems|number_format(0, '.', ',') }} items · list cached by Varnish</p>
+</section>
+
+<article class="category-list-page" data-category-slug="{{ category.slug }}">
+    <ul class="item-list category-full-list" data-item-list></ul>
+    <footer class="list-footer category-list-footer">
+        <button type="button" class="btn btn-sm" data-prev disabled>Previous</button>
+        <span data-page-info>Page 1</span>
+        <button type="button" class="btn btn-sm" data-next>Next</button>
+        <span class="cache-badge" data-cache-badge></span>
+    </footer>
+</article>
+{% endblock %}
+
+{% block javascripts %}
+<script src="{{ asset('js/category.js') }}" defer></script>
+{% endblock %}

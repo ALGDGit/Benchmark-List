@@ -1,0 +1,13 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block admin %}
+<h1>{{ title }}</h1>
+{{ form_errors(form) }}
+{{ form_start(form) }}
+    {{ form_row(form.name) }}
+    {{ form_row(form.category) }}
+    <button type="submit" class="btn">Save</button>
+{{ form_end(form) }}
+{% endblock %}

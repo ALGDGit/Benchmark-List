@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Categories — Benchmark List{% endblock %}
+
+{% block body %}
+<section class="hero">
+    <h1>Categories</h1>
+</section>
+
+<ul class="category-index">
+    {% for category in categories %}
+        <li>
+            <a href="{{ path('app_category_show', {slug: category.slug}) }}">
+                <strong>{{ category.name }}</strong>
+                <span class="muted">{{ category.slug }}</span>
+            </a>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

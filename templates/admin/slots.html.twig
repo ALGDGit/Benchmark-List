@@ -1,0 +1,17 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Homepage lists{% endblock %}
+
+{% block admin %}
+<h1>Numbered lists (1–10)</h1>
+{{ form_start(form) }}
+    {% for slotForm in form.slots %}
+        <div class="slot-form-row">
+            <h3>List {{ slotForm.vars.data.slotNumber }}</h3>
+            {{ form_row(slotForm.category) }}
+            {{ form_row(slotForm.slotNumber) }}
+        </div>
+    {% endfor %}
+    {{ form_row(form.save) }}
+{{ form_end(form) }}
+{% endblock %}

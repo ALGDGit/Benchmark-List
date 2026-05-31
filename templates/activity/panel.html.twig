@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Activity panel — Benchmark List{% endblock %}
+
+{% block body %}
+<section class="activity-hero">
+    <h1>Activity panel</h1>
+    <p>Live log: Varnish cache, Elasticsearch, admin, API requests, and console commands.</p>
+    <p class="activity-hint muted">
+        Cached API responses (Varnish <strong>HIT</strong>) do not reach PHP — only misses appear as “origin”.
+    </p>
+    <div class="activity-toolbar">
+        <label class="auto-refresh">
+            <input type="checkbox" id="auto-refresh" checked>
+            Refresh every 3s
+        </label>
+        <span class="activity-count" id="activity-count">{{ total }} events</span>
+        <form method="post" action="{{ path('app_activity_clear') }}" onsubmit="return confirm('Clear the activity log?');">
+            <input type="hidden" name="_token" value="{{ csrf_token('clear-activity') }}">
+            <button type="submit" class="btn btn-outline btn-sm">Clear log</button>
+        </form>
+    </div>
+</section>
+
+<section class="activity-legend">
+    <span class="badge badge-varnish">varnish</span>
+    <span class="badge badge-elasticsearch">elasticsearch</span>
+    <span class="badge badge-admin">admin</span>
+    <span class="badge badge-console">console</span>
+    <span class="badge badge-http">http</span>
+    <span class="badge badge-system">system</span>
+</section>
+
+<ul class="activity-feed" id="activity-feed">
+    {% for entry in entries %}
+        {% include 'activity/_entry.html.twig' with {entry: entry} %}
+    {% else %}
+        <li class="activity-empty" id="activity-empty">No events yet. Browse the homepage, change something in admin, or run <code>app:seed-database</code>.</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+{% block javascripts %}
+<script src="{{ asset('js/activity-panel.js') }}" defer></script>
+{% endblock %}

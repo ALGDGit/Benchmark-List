@@ -1,0 +1,10 @@
+# Forms use session CSRF (stateless tokens break classic POST submits in admin).
+framework:
+    form:
+        csrf_protection:
+            token_id: submit
+
+    csrf_protection:
+        stateless_token_ids:
+            - authenticate
+            - logout

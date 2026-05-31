@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Benchmark List — Home{% endblock %}
+
+{% block body %}
+<section class="hero">
+    <h1>Load benchmark</h1>
+</section>
+
+<section class="search-panel">
+    <label for="search-input">Search items</label>
+    <input type="search" id="search-input" placeholder="Type at least 2 characters..." autocomplete="off">
+    <ul id="search-suggestions" class="suggestions" hidden></ul>
+</section>
+
+<section class="lists-grid">
+    {% for category in categories %}
+        <article class="list-card" data-category-slug="{{ category.slug }}">
+            <header>
+                <h2>
+                    <a href="{{ path('app_category_show', {slug: category.slug}) }}" class="category-label">{{ category.name }}</a>
+                </h2>
+            </header>
+            <ul class="item-list" data-item-list></ul>
+            <footer class="list-footer">
+                <button type="button" class="btn btn-sm" data-prev disabled>Previous</button>
+                <span data-page-info>Page 1</span>
+                <button type="button" class="btn btn-sm" data-next>Next</button>
+                <span class="cache-badge" data-cache-badge></span>
+            </footer>
+        </article>
+    {% else %}
+        <p class="muted">No categories yet. Run <code>app:seed-database --force</code> or create them in <a href="{{ path('admin_categories') }}">admin</a>.</p>
+    {% endfor %}
+</section>
+{% endblock %}
+
+{% block javascripts %}
+<script src="{{ asset('js/home.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Run Symfony console as www-data (avoids breaking var/cache permissions for PHP-FPM).
+set -e
+cd "$(dirname "$0")/.."
+exec docker compose exec -u www-data web php bin/console "$@"

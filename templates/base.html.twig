@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Benchmark List{% endblock %}</title>
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="{{ path('app_home') }}" class="logo">Benchmark List</a>
+            <nav>
+                <a href="{{ path('app_home') }}">Home</a>
+                <a href="{{ path('app_categories') }}">Categories</a>
+                <a href="{{ path('app_activity_panel') }}">Activity</a>
+                <a href="{{ path('admin_dashboard') }}" class="btn btn-outline">Control panel</a>
+            </nav>
+        </div>
+    </header>
+
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="flash flash-{{ label }}">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    <main class="container">
+        {% block body %}{% endblock %}
+    </main>
+
+    {% block javascripts %}{% endblock %}
+</body>
+</html>
