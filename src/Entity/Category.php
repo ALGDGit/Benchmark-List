@@ -24,7 +24,7 @@ class Category
     private string $slug = '';
 
     /** @var Collection<int, Item> */
-    #[ORM\OneToMany(targetEntity: Item::class, mappedBy: 'category', orphanRemoval: true)]
+    #[ORM\ManyToMany(targetEntity: Item::class, mappedBy: 'categories')]
     private Collection $items;
 
     public function __construct()

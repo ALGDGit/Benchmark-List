@@ -4,6 +4,7 @@ namespace App\Controller\Api;
 
 use App\Repository\CategoryRepository;
 use App\Repository\ItemRepository;
+use App\Service\CacheTag;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -49,8 +50,7 @@ final class CategoryApiController extends AbstractController
 
         $response->setPublic();
         $response->headers->set('Cache-Control', 'public, max-age=0, s-maxage=3600');
-        $response->headers->set('X-Category-Slug', $slug);
-        $response->headers->set('X-Cache-Tag', 'category-'.$slug);
+        $response->headers->set('X-Cache-Tags', CacheTag::headerValue(CacheTag::forCategoryApi($slug, $page)));
 
         return $response;
     }

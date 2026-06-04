@@ -33,7 +33,7 @@ final class AdminDashboardController extends AbstractController
         }
 
         $varnishPurger->purgeAll();
-        $this->addFlash('success', 'All list and category API cache entries were purged in Varnish.');
+        $this->addFlash('success', 'All Varnish cache tags were purged.');
 
         return $this->redirectToRoute('admin_dashboard');
     }

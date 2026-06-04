@@ -3,11 +3,12 @@
 namespace App\Entity;
 
 use App\Repository\ItemRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ItemRepository::class)]
 #[ORM\Table(name: 'item')]
-#[ORM\Index(name: 'idx_item_category', columns: ['category_id'])]
 #[ORM\Index(name: 'idx_item_name', columns: ['name'])]
 class Item
 {
@@ -19,9 +20,18 @@ class Item
     #[ORM\Column(length: 180)]
     private string $name = '';
 
-    #[ORM\ManyToOne(inversedBy: 'items')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private ?Category $category = null;
+    #[ORM\Column(length: 10, enumType: ItemListPosition::class, options: ['default' => 'first'])]
+    private ItemListPosition $listPosition = ItemListPosition::First;
+
+    /** @var Collection<int, Category> */
+    #[ORM\ManyToMany(targetEntity: Category::class, inversedBy: 'items')]
+    #[ORM\JoinTable(name: 'item_category')]
+    private Collection $categories;
+
+    public function __construct()
+    {
+        $this->categories = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -40,14 +50,36 @@ class Item
         return $this;
     }
 
-    public function getCategory(): ?Category
+    public function getListPosition(): ItemListPosition
     {
-        return $this->category;
+        return $this->listPosition;
     }
 
-    public function setCategory(?Category $category): static
+    public function setListPosition(ItemListPosition $listPosition): static
     {
-        $this->category = $category;
+        $this->listPosition = $listPosition;
+
+        return $this;
+    }
+
+    /** @return Collection<int, Category> */
+    public function getCategories(): Collection
+    {
+        return $this->categories;
+    }
+
+    public function addCategory(Category $category): static
+    {
+        if (!$this->categories->contains($category)) {
+            $this->categories->add($category);
+        }
+
+        return $this;
+    }
+
+    public function removeCategory(Category $category): static
+    {
+        $this->categories->removeElement($category);
 
         return $this;
     }

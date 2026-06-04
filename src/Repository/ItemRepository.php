@@ -4,6 +4,8 @@ namespace App\Repository;
 
 use App\Entity\Category;
 use App\Entity\Item;
+use App\Entity\ItemListPosition;
+use App\Service\CacheTag;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -24,9 +26,13 @@ class ItemRepository extends ServiceEntityRepository
 
         return $this->createQueryBuilder('i')
             ->select('i.id', 'i.name')
-            ->where('i.category = :category')
+            ->innerJoin('i.categories', 'c')
+            ->where('c = :category')
             ->setParameter('category', $category)
-            ->orderBy('i.id', 'DESC')
+            ->orderBy('CASE WHEN i.listPosition = :last THEN 1 ELSE 0 END', 'ASC')
+            ->addOrderBy('CASE WHEN i.listPosition = :last THEN i.id ELSE 0 END', 'ASC')
+            ->addOrderBy('CASE WHEN i.listPosition = :last THEN 0 ELSE i.id END', 'DESC')
+            ->setParameter('last', ItemListPosition::Last)
             ->setFirstResult($offset)
             ->setMaxResults($limit)
             ->getQuery()
@@ -36,10 +42,16 @@ class ItemRepository extends ServiceEntityRepository
     public function countByCategory(Category $category): int
     {
         return (int) $this->createQueryBuilder('i')
-            ->select('COUNT(i.id)')
-            ->where('i.category = :category')
+            ->select('COUNT(DISTINCT i.id)')
+            ->innerJoin('i.categories', 'c')
+            ->where('c = :category')
             ->setParameter('category', $category)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    public function lastPageForCategory(Category $category, int $limit = CacheTag::API_PAGE_LIMIT): int
+    {
+        return CacheTag::lastPage($this->countByCategory($category), $limit);
     }
 }

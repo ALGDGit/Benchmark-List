@@ -2,62 +2,46 @@
 
 namespace App\Service;
 
+use App\Entity\Category;
 use App\Entity\HomepageSlot;
+use App\Entity\Item;
+use App\Entity\ItemListPosition;
 use App\Repository\CategoryRepository;
 use App\Repository\HomepageSlotRepository;
+use App\Repository\ItemRepository;
 use App\Service\Activity\ActivityLogger;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Selective Varnish cache purge by homepage list (slot 1–10) and category.
+ * Varnish invalidation by cache tags only (X-Cache-Tags on cached API objects).
  */
 final class VarnishPurger
 {
     /** @var int[] */
-    private const ALL_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    private const ALL_LIST_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly string $varnishUrl,
-        private readonly HomepageSlotRepository $slotRepository,
         private readonly CategoryRepository $categoryRepository,
+        private readonly HomepageSlotRepository $slotRepository,
+        private readonly ItemRepository $itemRepository,
         private readonly ActivityLogger $activityLogger,
     ) {
     }
 
     public function purgeAll(): void
     {
-        $slotResults = [];
-        foreach (self::ALL_SLOTS as $slotNumber) {
-            $slotResults[$slotNumber] = $this->sendBan(['X-Ban-Slot' => (string) $slotNumber]);
-        }
-
-        $categorySlugs = [];
-        $categoryResults = [];
-        foreach ($this->categoryRepository->findAllOrdered() as $category) {
-            $slug = $category->getSlug();
-            if ($slug === '') {
-                continue;
-            }
-            $categorySlugs[] = $slug;
-            $categoryResults[$slug] = $this->sendBan(['X-Ban-Category' => $slug]);
-        }
+        $result = $this->sendBan(['X-Ban-All-Tags' => '1']);
 
         $this->activityLogger->log(
             'varnish',
             'purge_all',
-            sprintf(
-                'BAN all Varnish cache (%d list slots, %d categories)',
-                \count(self::ALL_SLOTS),
-                \count($categorySlugs)
-            ),
+            'BAN all Varnish objects with cache tags',
             [
                 'command' => 'BAN',
-                'type' => 'purge_all',
-                'slots' => self::ALL_SLOTS,
-                'category_slugs' => $categorySlugs,
-                'slot_ban_results' => $slotResults,
-                'category_ban_results' => $categoryResults,
+                'type' => 'purge_all_tags',
+                'ban_result' => $result,
             ]
         );
     }
@@ -68,92 +52,100 @@ final class VarnishPurger
             return;
         }
 
-        $this->banSlots([$slotNumber]);
+        $this->purgeTags(CacheTag::list($slotNumber));
     }
 
-    public function purgeSlotsForCategory(int $categoryId): void
-    {
-        $this->purgeSlotsForCategories($categoryId);
-    }
-
-    public function purgeCategoryBySlug(string $slug): void
+    public function purgeCategorySlug(string $slug): void
     {
         if ($slug !== '') {
-            $this->banCategorySlug($slug);
+            $this->purgeTags(CacheTag::category($slug));
         }
     }
 
-    public function purgeSlotsForCategories(int ...$categoryIds): void
+    public function purgeCategoryIds(int ...$categoryIds): void
     {
-        $slotsToPurge = [];
-
-        foreach ($categoryIds as $categoryId) {
-            foreach ($this->slotRepository->findSlotNumbersByCategoryId($categoryId) as $slotNumber) {
-                $slotsToPurge[$slotNumber] = true;
-            }
-        }
-
-        $this->banSlots(array_map('intval', array_keys($slotsToPurge)));
-
+        $tags = [];
         foreach (array_unique($categoryIds) as $categoryId) {
             $category = $this->categoryRepository->find($categoryId);
-            if ($category !== null) {
-                $this->banCategorySlug($category->getSlug());
+            if ($category !== null && $category->getSlug() !== '') {
+                $tags[] = CacheTag::category($category->getSlug());
             }
         }
+
+        $this->purgeTags(...$tags);
     }
 
     /**
-     * @param int[] $slotNumbers
+     * After saving an item: full category/list purge when at the beginning, last page only when at the end.
+     *
+     * @param iterable<Category> $categories
      */
-    private function banSlots(array $slotNumbers): void
+    public function purgeAfterItemChange(Item $item, iterable $categories): void
     {
-        if ($slotNumbers === []) {
-            return;
+        $tags = [];
+
+        foreach ($categories as $category) {
+            $slug = $category->getSlug();
+            if ($slug === '') {
+                continue;
+            }
+
+            if ($item->getListPosition() === ItemListPosition::First) {
+                $tags[] = CacheTag::category($slug);
+                foreach ($this->slotRepository->findSlotNumbersByCategoryId((int) $category->getId()) as $slotNumber) {
+                    $tags[] = CacheTag::list($slotNumber);
+                }
+            } else {
+                $total = $this->itemRepository->countByCategory($category);
+                $limit = CacheTag::API_PAGE_LIMIT;
+                $lastPage = CacheTag::lastPage($total, $limit);
+                $previousLastPage = CacheTag::lastPage(max(0, $total - 1), $limit);
+
+                $tags[] = CacheTag::categoryPage($slug, $lastPage);
+                if ($previousLastPage !== $lastPage) {
+                    $tags[] = CacheTag::categoryPage($slug, $previousLastPage);
+                }
+                foreach ($this->slotRepository->findSlotNumbersByCategoryId((int) $category->getId()) as $slotNumber) {
+                    $tags[] = CacheTag::listPage($slotNumber, $lastPage);
+                    if ($previousLastPage !== $lastPage) {
+                        $tags[] = CacheTag::listPage($slotNumber, $previousLastPage);
+                    }
+                }
+            }
         }
 
-        sort($slotNumbers);
+        $this->purgeTags(...array_values(array_unique($tags)));
+    }
+
+    /**
+     * @return array<string, string> tag => ban result
+     */
+    public function purgeTags(string ...$tags): array
+    {
+        $tags = array_values(array_unique(array_filter($tags, static fn (string $t): bool => $t !== '')));
+        if ($tags === []) {
+            return [];
+        }
+
+        sort($tags);
         $results = [];
-
-        foreach ($slotNumbers as $slotNumber) {
-            $results[$slotNumber] = $this->sendBan(['X-Ban-Slot' => (string) $slotNumber]);
+        foreach ($tags as $tag) {
+            $results[$tag] = $this->sendBan(['X-Ban-Tag' => $tag]);
         }
-
-        $unaffected = array_values(array_diff(self::ALL_SLOTS, $slotNumbers));
 
         $this->activityLogger->log(
             'varnish',
-            'ban',
-            sprintf(
-                'BAN Varnish on list(s) %s — list(s) %s still cached',
-                implode(', ', $slotNumbers),
-                $unaffected === [] ? 'ninguna' : implode(', ', $unaffected)
-            ),
+            'ban_tags',
+            sprintf('BAN Varnish cache tag(s): %s', implode(', ', $tags)),
             [
                 'command' => 'BAN',
-                'type' => 'homepage_slot',
-                'slots_invalidated' => $slotNumbers,
-                'slots_still_cached' => $unaffected,
+                'type' => 'cache_tag',
+                'tags' => $tags,
                 'ban_results' => $results,
             ]
         );
-    }
 
-    private function banCategorySlug(string $slug): void
-    {
-        $result = $this->sendBan(['X-Ban-Category' => $slug]);
-
-        $this->activityLogger->log(
-            'varnish',
-            'ban_category',
-            sprintf('BAN Varnish on category /api/categories/%s', $slug),
-            [
-                'command' => 'BAN',
-                'type' => 'category',
-                'category_slug' => $slug,
-                'ban_result' => $result,
-            ]
-        );
+        return $results;
     }
 
     /**
@@ -162,12 +154,16 @@ final class VarnishPurger
     private function sendBan(array $headers): string
     {
         try {
-            $this->httpClient->request('BAN', rtrim($this->varnishUrl, '/').'/', [
+            $response = $this->httpClient->request('BAN', rtrim($this->varnishUrl, '/').'/', [
                 'headers' => array_merge(['Host' => 'localhost'], $headers),
-                'timeout' => 2,
+                'timeout' => 5,
             ]);
+            $status = $response->getStatusCode();
+            if ($status >= 200 && $status < 300) {
+                return 'ok';
+            }
 
-            return 'ok';
+            return 'http_'.$status;
         } catch (\Throwable $e) {
             return 'error: '.$e->getMessage();
         }

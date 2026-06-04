@@ -79,8 +79,8 @@ final class ItemSearchService
                                 'keyword' => ['type' => 'keyword'],
                             ],
                         ],
-                        'category_id' => ['type' => 'integer'],
-                        'category_name' => ['type' => 'keyword'],
+                        'category_ids' => ['type' => 'integer'],
+                        'category_names' => ['type' => 'keyword'],
                     ],
                 ],
             ],
@@ -101,7 +101,7 @@ final class ItemSearchService
     }
 
     /**
-     * @param list<array{id:int,name:string,category_id:int,category_name:string}> $documents
+     * @param list<array{id:int,name:string,category_ids:list<int>,category_names:list<string>}> $documents
      */
     public function bulkIndex(array $documents): void
     {
@@ -118,7 +118,11 @@ final class ItemSearchService
         $this->client()->bulk(['body' => $body, 'refresh' => false]);
     }
 
-    public function indexOne(int $id, string $name, int $categoryId, string $categoryName): void
+    /**
+     * @param list<int>    $categoryIds
+     * @param list<string> $categoryNames
+     */
+    public function indexOne(int $id, string $name, array $categoryIds, array $categoryNames): void
     {
         $this->ensureIndex();
 
@@ -128,8 +132,8 @@ final class ItemSearchService
             'body' => [
                 'id' => $id,
                 'name' => $name,
-                'category_id' => $categoryId,
-                'category_name' => $categoryName,
+                'category_ids' => $categoryIds,
+                'category_names' => $categoryNames,
             ],
             'refresh' => true,
         ]);
@@ -138,7 +142,7 @@ final class ItemSearchService
             'index' => self::INDEX,
             'id' => $id,
             'name' => $name,
-            'category_id' => $categoryId,
+            'category_ids' => $categoryIds,
         ]);
     }
 
@@ -162,7 +166,7 @@ final class ItemSearchService
     }
 
     /**
-     * @return list<array{id:int,name:string,category_id:int,category_name:string}>
+     * @return list<array{id:int,name:string,category_ids:list<int>,category_names:list<string>}>
      */
     public function autocomplete(string $query, int $limit = 12): array
     {
@@ -183,7 +187,7 @@ final class ItemSearchService
                         ],
                     ],
                 ],
-                '_source' => ['id', 'name', 'category_id', 'category_name'],
+                '_source' => ['id', 'name', 'category_ids', 'category_names'],
             ],
         ]);
 

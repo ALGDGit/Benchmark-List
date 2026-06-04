@@ -17,8 +17,7 @@
     const nextBtn = root.querySelector('[data-next]');
     const cacheBadge = root.querySelector('[data-cache-badge]');
     const limit = 10;
-    const storageKey = `category-page-${slug}`;
-    let page = Math.max(1, parseInt(sessionStorage.getItem(storageKey) || '1', 10) || 1);
+    let page = 1;
     let loadGeneration = 0;
 
     const applyPagination = (currentPage, totalPages) => {
@@ -56,7 +55,6 @@
             .join('');
 
         page = data.page;
-        sessionStorage.setItem(storageKey, String(page));
         pageInfo.textContent = `Page ${data.page} / ${data.pages} (${data.total} items)`;
         applyPagination(data.page, data.pages);
 

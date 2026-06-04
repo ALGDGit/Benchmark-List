@@ -52,7 +52,7 @@ final class ApiActivitySubscriber implements EventSubscriberInterface
                     'query' => $request->query->all(),
                     'status' => $response->getStatusCode(),
                     'x_cache' => 'MISS',
-                    'x_cache_tag' => $response->headers->get('X-Cache-Tag'),
+                    'x_cache_tags' => $response->headers->get('X-Cache-Tags'),
                     'category_slug' => $slug,
                 ]
             );
@@ -74,7 +74,7 @@ final class ApiActivitySubscriber implements EventSubscriberInterface
                     'query' => $request->query->all(),
                     'status' => $response->getStatusCode(),
                     'x_cache' => 'MISS',
-                    'x_cache_tag' => $response->headers->get('X-Cache-Tag'),
+                    'x_cache_tags' => $response->headers->get('X-Cache-Tags'),
                     'slot' => $slot,
                 ]
             );

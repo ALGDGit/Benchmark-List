@@ -76,15 +76,15 @@ final class AdminCategoryController extends AbstractController
             }
             $em->flush();
             if ($category->getId() !== null) {
-                $varnishPurger->purgeSlotsForCategory($category->getId());
+                $varnishPurger->purgeCategoryIds($category->getId());
             }
             if ($slugBefore !== '' && $slugBefore !== $category->getSlug()) {
-                $varnishPurger->purgeCategoryBySlug($slugBefore);
+                $varnishPurger->purgeCategorySlug($slugBefore);
             }
             $activityLogger->log('admin', 'category_update', sprintf('Category updated: %s', $category->getName()), [
                 'category_id' => $category->getId(),
             ]);
-            $this->addFlash('success', 'Category updated. Cache purged only for lists showing it.');
+            $this->addFlash('success', 'Category updated. Varnish purged its cache tag.');
 
             return $this->redirectToRoute('admin_categories');
         }
@@ -111,16 +111,16 @@ final class AdminCategoryController extends AbstractController
         $categoryName = $category->getName();
         $categorySlug = $category->getSlug();
         if ($categoryId !== null) {
-            $varnishPurger->purgeSlotsForCategory($categoryId);
+            $varnishPurger->purgeCategoryIds($categoryId);
         } elseif ($categorySlug !== '') {
-            $varnishPurger->purgeCategoryBySlug($categorySlug);
+            $varnishPurger->purgeCategorySlug($categorySlug);
         }
         $em->remove($category);
         $em->flush();
         $activityLogger->log('admin', 'category_delete', sprintf('Category deleted: %s', $categoryName), [
             'category_id' => $categoryId,
         ]);
-        $this->addFlash('success', 'Category deleted. Cache purged only for affected lists.');
+        $this->addFlash('success', 'Category deleted. Varnish purged its cache tag.');
 
         return $this->redirectToRoute('admin_categories');
     }

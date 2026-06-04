@@ -67,10 +67,14 @@ final class IndexElasticsearchCommand extends Command
         while (true) {
             $rows = $conn->fetchAllAssociative(
                 sprintf(
-                    'SELECT i.id, i.name, i.category_id, c.name AS category_name
+                    'SELECT i.id, i.name,
+                            GROUP_CONCAT(c.id ORDER BY c.id) AS category_ids,
+                            GROUP_CONCAT(c.name ORDER BY c.id SEPARATOR \'|||\' ) AS category_names
                      FROM item i
-                     INNER JOIN category c ON c.id = i.category_id
+                     LEFT JOIN item_category ic ON ic.item_id = i.id
+                     LEFT JOIN category c ON c.id = ic.category_id
                      WHERE i.id > :lastId
+                     GROUP BY i.id, i.name
                      ORDER BY i.id ASC
                      LIMIT %d',
                     self::BATCH
@@ -82,12 +86,21 @@ final class IndexElasticsearchCommand extends Command
                 break;
             }
 
-            $docs = array_map(static fn (array $row): array => [
-                'id' => (int) $row['id'],
-                'name' => $row['name'],
-                'category_id' => (int) $row['category_id'],
-                'category_name' => $row['category_name'],
-            ], $rows);
+            $docs = array_map(static function (array $row): array {
+                $idsRaw = $row['category_ids'] ?? '';
+                $namesRaw = $row['category_names'] ?? '';
+
+                return [
+                    'id' => (int) $row['id'],
+                    'name' => $row['name'],
+                    'category_ids' => $idsRaw !== '' && $idsRaw !== null
+                        ? array_map('intval', explode(',', (string) $idsRaw))
+                        : [],
+                    'category_names' => $namesRaw !== '' && $namesRaw !== null
+                        ? explode('|||', (string) $namesRaw)
+                        : [],
+                ];
+            }, $rows);
 
             $this->searchService->bulkIndex($docs);
             $lastId = (int) $rows[array_key_last($rows)]['id'];

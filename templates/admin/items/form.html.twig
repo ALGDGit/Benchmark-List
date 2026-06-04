@@ -2,12 +2,41 @@
 
 {% block title %}{{ title }}{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+{% endblock %}
+
 {% block admin %}
 <h1>{{ title }}</h1>
 {{ form_errors(form) }}
-{{ form_start(form) }}
+{{ form_start(form, { attr: { class: 'item-form' } }) }}
     {{ form_row(form.name) }}
-    {{ form_row(form.category) }}
+
+    <div class="list-position-field">
+        {{ form_label(form.listPosition) }}
+        {{ form_errors(form.listPosition) }}
+        <div class="list-position-options">
+            {% for choice in form.listPosition %}
+                <label class="list-position-option" for="{{ choice.vars.id }}">
+                    {{ form_widget(choice) }}
+                    <span class="list-position-option__label">{{ choice.vars.label }}</span>
+                </label>
+            {% endfor %}
+        </div>
+        {% do form.listPosition.setRendered %}
+    </div>
+
+    <div class="category-field">
+        {{ form_label(form.categories) }}
+        {{ form_errors(form.categories) }}
+        {{ form_widget(form.categories, { attr: { class: 'category-select' } }) }}
+    </div>
+
     <button type="submit" class="btn">Save</button>
 {{ form_end(form) }}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="{{ asset('js/admin-category-picker.js') }}?v=3"></script>
 {% endblock %}

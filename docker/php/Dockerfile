@@ -14,6 +14,7 @@ WORKDIR /var/www/html
 COPY docker/php/nginx.conf /etc/nginx/sites-available/default
 COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 COPY docker/php/memory.ini /usr/local/etc/php/conf.d/memory.ini
+COPY docker/php/zz-fpm-pool.conf /usr/local/etc/php-fpm.d/zz-fpm-pool.conf
 COPY docker/php/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

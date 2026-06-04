@@ -21,11 +21,12 @@ sub vcl_recv {
         if (!client.ip ~ purge) {
             return (synth(405, "Not allowed"));
         }
-        if (req.http.X-Ban-Slot ~ "^(10|[1-9])$") {
-            ban("req.url ~ ^/api/lists/" + req.http.X-Ban-Slot + "($|\\?)");
+        if (req.http.X-Ban-All-Tags == "1") {
+            ban("obj.http.X-Cache-Tags ~ .");
         }
-        if (req.http.X-Ban-Category) {
-            ban("req.url ~ ^/api/categories/" + req.http.X-Ban-Category + "/items($|\\?)");
+        if (req.http.X-Ban-Tag) {
+            /* Tags are #delimited# in X-Cache-Tags; # is not a regex metacharacter in ban expressions */
+            ban("obj.http.X-Cache-Tags ~ #" + req.http.X-Ban-Tag + "#");
         }
         return (synth(200, "Ban added"));
     }
@@ -50,31 +51,18 @@ sub vcl_recv {
 }
 
 sub vcl_backend_response {
-    if (bereq.url ~ "^/api/lists/") {
+    if (bereq.url ~ "^/api/lists/" || bereq.url ~ "^/api/categories/") {
         unset beresp.http.Set-Cookie;
         if (beresp.http.Cache-Control ~ "no-cache|private") {
             set beresp.ttl = 0s;
             set beresp.uncacheable = true;
         } else {
             set beresp.ttl = 1h;
-            set beresp.grace = 5m;
+            /* grace must be 0 or banned objects keep being served as stale */
+            set beresp.grace = 0s;
         }
-        if (beresp.http.X-List-Slot) {
-            set beresp.http.X-Cache-Tag = "list-" + beresp.http.X-List-Slot;
-        }
-    }
-
-    if (bereq.url ~ "^/api/categories/") {
-        unset beresp.http.Set-Cookie;
-        if (beresp.http.Cache-Control ~ "no-cache|private") {
-            set beresp.ttl = 0s;
-            set beresp.uncacheable = true;
-        } else {
-            set beresp.ttl = 1h;
-            set beresp.grace = 5m;
-        }
-        if (beresp.http.X-Category-Slug) {
-            set beresp.http.X-Cache-Tag = "category-" + beresp.http.X-Category-Slug;
+        if (beresp.http.X-Cache-Tags) {
+            set beresp.http.X-Cache-Tags = beresp.http.X-Cache-Tags;
         }
     }
 }
@@ -85,4 +73,5 @@ sub vcl_deliver {
     } else {
         set resp.http.X-Cache = "MISS";
     }
+    unset resp.http.X-Cache-Tags;
 }

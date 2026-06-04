@@ -16,12 +16,13 @@ class CategoryType extends AbstractType
         $builder
             ->add('name', TextType::class, [
                 'label' => 'Name',
+                'attr' => ['autocomplete' => 'off'],
                 'constraints' => [new NotBlank()],
             ])
             ->add('slug', TextType::class, [
                 'label' => 'Slug (optional)',
                 'required' => false,
-                'help' => 'Generated automatically if left empty.',
+                'attr' => ['autocomplete' => 'off'],
             ]);
     }
 

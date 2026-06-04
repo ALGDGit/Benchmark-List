@@ -2,9 +2,9 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\HomepageSlot;
 use App\Repository\HomepageSlotRepository;
 use App\Repository\ItemRepository;
+use App\Service\CacheTag;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -54,8 +54,7 @@ final class ListApiController extends AbstractController
         // max-age=0: browser must not cache (so X-Cache reflects Varnish each time)
         // s-maxage=3600: Varnish caches 1 hour (see docker/varnish/default.vcl)
         $response->headers->set('Cache-Control', 'public, max-age=0, s-maxage=3600');
-        $response->headers->set('X-List-Slot', (string) $slot);
-        $response->headers->set('X-Cache-Tag', 'list-'.$slot);
+        $response->headers->set('X-Cache-Tags', CacheTag::headerValue(CacheTag::forListApi($slot, $category->getSlug(), $page)));
 
         return $response;
     }

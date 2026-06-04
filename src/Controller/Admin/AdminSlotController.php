@@ -7,6 +7,7 @@ use App\Form\HomepageSlotsType;
 use App\Repository\CategoryRepository;
 use App\Repository\HomepageSlotRepository;
 use App\Service\Activity\ActivityLogger;
+use App\Service\CacheTag;
 use App\Service\VarnishPurger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -55,19 +56,33 @@ final class AdminSlotController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $em->flush();
 
-            $purged = [];
+            $purgedTags = [];
             foreach ($slots as $slot) {
                 $slotNum = $slot->getSlotNumber();
-                if (($categoryBefore[$slotNum] ?? null) !== $slot->getCategory()?->getId()) {
-                    $varnishPurger->purgeListSlot($slotNum);
-                    $purged[] = $slotNum;
+                $categoryIdBefore = $categoryBefore[$slotNum] ?? null;
+                $categoryIdAfter = $slot->getCategory()?->getId();
+                if ($categoryIdBefore === $categoryIdAfter) {
+                    continue;
                 }
+
+                $tags = [CacheTag::list($slotNum)];
+                foreach ([$categoryIdBefore, $categoryIdAfter] as $categoryId) {
+                    if (!is_int($categoryId)) {
+                        continue;
+                    }
+                    $category = $categoryRepository->find($categoryId);
+                    if ($category !== null && $category->getSlug() !== '') {
+                        $tags[] = CacheTag::category($category->getSlug());
+                    }
+                }
+                $varnishPurger->purgeTags(...array_values(array_unique($tags)));
+                $purgedTags = array_merge($purgedTags, $tags);
             }
 
-            $activityLogger->log('admin', 'slots_update', $purged === []
+            $activityLogger->log('admin', 'slots_update', $purgedTags === []
                 ? 'Homepage slots saved with no category change'
-                : sprintf('Homepage slots changed; purge on list(s): %s', implode(', ', $purged)), [
-                'purged_slots' => $purged,
+                : sprintf('Homepage slots changed; purged tag(s): %s', implode(', ', $purgedTags)), [
+                'purged_tags' => $purgedTags,
                 'slots' => array_map(static fn ($s) => [
                     'slot' => $s->getSlotNumber(),
                     'category_id' => $s->getCategory()?->getId(),
@@ -75,9 +90,9 @@ final class AdminSlotController extends AbstractController
                 ], $slots),
             ]);
 
-            $message = $purged === []
+            $message = $purgedTags === []
                 ? 'Lists saved (no cache changes).'
-                : sprintf('Lists updated. Cache purged only on list(s): %s.', implode(', ', $purged));
+                : sprintf('Lists updated. Varnish purged cache tag(s): %s.', implode(', ', $purgedTags));
             $this->addFlash('success', $message);
 
             return $this->redirectToRoute('admin_slots');
