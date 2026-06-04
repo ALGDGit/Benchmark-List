@@ -29,7 +29,9 @@
         "twig/twig": "^2.12|^3.27.1"
     },
     "require-dev": {
-        "symfony/maker-bundle": ">=1.67"
+        "phpunit/phpunit": "^11.5.55",
+        "symfony/maker-bundle": ">=1.67",
+        "symfony/phpunit-bridge": "7.2.*"
     },
     "config": {
         "audit": {
@@ -73,7 +75,9 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
-        ]
+        ],
+        "test": "phpunit",
+        "benchmark": "php bin/console app:benchmark --all"
     },
     "conflict": {
         "symfony/symfony": "*"

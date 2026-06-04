@@ -15,6 +15,8 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    ports:
+      - "8081:80"   # Direct PHP/nginx — bypass Varnish for benchmark comparisons
     volumes:
       - .:/var/www/html
       - ./docker/php/nginx.conf:/etc/nginx/sites-available/default:ro
@@ -37,6 +39,9 @@ services:
       REDIS_URL: redis://redis:6379
       ELASTICSEARCH_URL: http://elasticsearch:9200
       VARNISH_URL: http://varnish:80
+      DEFAULT_URI: http://varnish
+      FEATURE_ELASTICSEARCH: "1"
+      FEATURE_REDIS_ACTIVITY: "1"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1/health.php"]
       interval: 10s

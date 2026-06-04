@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: ctype, iconv, pdo_mysql
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPUnit
+        run: composer test
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start stack
+        run: docker compose up -d --build
+
+      - name: Wait for web healthy
+        run: |
+          for i in $(seq 1 30); do
+            docker compose ps web | grep -q healthy && exit 0
+            sleep 10
+          done
+          docker compose ps
+          exit 1
+
+      - name: Migrate and seed
+        run: |
+          docker compose exec -T -u www-data web php bin/console doctrine:migrations:migrate --no-interaction
+          docker compose exec -T -u www-data web php bin/console app:seed-database --force
+          docker compose exec -T -u www-data web php bin/console app:index-elasticsearch --reset
+
+      - name: Smoke test API
+        run: |
+          curl -sf http://localhost:8080/health.php
+          curl -sf http://localhost:8080/api/categories/sopas/items?page=1 | head -c 200
+
+  benchmark:
+    runs-on: ubuntu-latest
+    needs: docker-smoke
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start stack
+        run: docker compose up -d --build
+
+      - name: Setup data
+        run: |
+          for i in $(seq 1 30); do
+            docker compose ps web | grep -q healthy && break
+            sleep 10
+          done
+          docker compose exec -T -u www-data web php bin/console doctrine:migrations:migrate --no-interaction
+          docker compose exec -T -u www-data web php bin/console app:seed-database --force
+          docker compose exec -T -u www-data web php bin/console app:index-elasticsearch --reset
+
+      - name: Run benchmarks
+        run: |
+          chmod +x benchmarks/run.sh
+          ./benchmarks/run.sh
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmarks/results/latest.*

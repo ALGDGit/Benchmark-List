@@ -1,0 +1,47 @@
+[
+    {
+        "id": "varnish_warm",
+        "name": "Category API via Varnish (warm cache)",
+        "description": "List endpoints cached by Varnish after warmup — typical homepage load.",
+        "url": "{{base}}/api/categories/sopas/items?page=1&limit=10",
+        "warmup": 10,
+        "requests": 500,
+        "concurrency": 20
+    },
+    {
+        "id": "varnish_cold",
+        "name": "Category API via Varnish (cold / MISS)",
+        "description": "Unique query string each run forces cache MISS — origin + DB cost.",
+        "url": "{{base}}/api/categories/sopas/items?page=1&limit=10&_bench={{rand}}",
+        "warmup": 0,
+        "requests": 100,
+        "concurrency": 5
+    },
+    {
+        "id": "origin_direct",
+        "name": "Category API direct to PHP (bypass Varnish)",
+        "description": "Hit nginx/PHP directly on port 8081 — compare with varnish_warm.",
+        "url": "http://web/api/categories/sopas/items?page=1&limit=10",
+        "warmup": 3,
+        "requests": 200,
+        "concurrency": 10
+    },
+    {
+        "id": "search_elasticsearch",
+        "name": "Search autocomplete (Elasticsearch, not cached)",
+        "description": "Every request reaches PHP + Elasticsearch — no Varnish cache.",
+        "url": "{{base}}/api/search/autocomplete?q=pa",
+        "warmup": 5,
+        "requests": 150,
+        "concurrency": 10
+    },
+    {
+        "id": "homepage_html",
+        "name": "Homepage HTML (not API-cached)",
+        "description": "Twig shell only; lists load via JS afterwards.",
+        "url": "{{base}}/",
+        "warmup": 3,
+        "requests": 200,
+        "concurrency": 15
+    }
+]

@@ -15,6 +15,11 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
+    App\Service\FeatureFlags:
+        arguments:
+            $elasticsearchEnabled: '%env(bool:FEATURE_ELASTICSEARCH)%'
+            $redisActivityEnabled: '%env(bool:FEATURE_REDIS_ACTIVITY)%'
+
     App\Service\Elasticsearch\ItemSearchService:
         arguments:
             $elasticsearchUrl: '%env(ELASTICSEARCH_URL)%'
@@ -31,3 +36,9 @@ services:
         arguments:
             $redisUrl: '%env(REDIS_URL)%'
             $projectDir: '%kernel.project_dir%'
+            $redisEnabled: '%env(bool:FEATURE_REDIS_ACTIVITY)%'
+
+    App\Command\BenchmarkCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+            $defaultBaseUrl: '%env(DEFAULT_URI)%'

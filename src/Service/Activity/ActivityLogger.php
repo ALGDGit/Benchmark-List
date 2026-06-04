@@ -17,6 +17,7 @@ final class ActivityLogger
     public function __construct(
         private readonly string $redisUrl,
         private readonly string $projectDir,
+        private readonly bool $redisEnabled = true,
     ) {
     }
 
@@ -70,6 +71,10 @@ final class ActivityLogger
 
     public function count(): int
     {
+        if (!$this->redisEnabled) {
+            return count($this->getFromFile());
+        }
+
         try {
             return (int) $this->client()->llen(self::REDIS_KEY);
         } catch (\Throwable) {
@@ -79,6 +84,10 @@ final class ActivityLogger
 
     private function pushToRedis(string $encoded): bool
     {
+        if (!$this->redisEnabled) {
+            return false;
+        }
+
         try {
             $client = $this->client();
             $client->lpush(self::REDIS_KEY, [$encoded]);
@@ -92,6 +101,10 @@ final class ActivityLogger
 
     private function getFromRedis(int $limit): array
     {
+        if (!$this->redisEnabled) {
+            return [];
+        }
+
         try {
             $raw = $this->client()->lrange(self::REDIS_KEY, 0, $limit - 1);
             if ($raw === []) {
