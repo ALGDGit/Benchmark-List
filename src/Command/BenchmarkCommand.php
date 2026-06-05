@@ -32,7 +32,7 @@ final class BenchmarkCommand extends Command
             ->addOption('all', null, InputOption::VALUE_NONE, 'Run all scenarios from benchmarks/scenarios.json')
             ->addOption('scenario', null, InputOption::VALUE_REQUIRED, 'Run a single scenario id from scenarios.json')
             ->addOption('url', null, InputOption::VALUE_REQUIRED, 'Ad-hoc URL to benchmark')
-            ->addOption('requests', 'n', InputOption::VALUE_REQUIRED, 'Total requests', '200')
+            ->addOption('requests', null, InputOption::VALUE_REQUIRED, 'Total requests', '200')
             ->addOption('concurrency', 'c', InputOption::VALUE_REQUIRED, 'Parallel requests per batch', '10')
             ->addOption('warmup', 'w', InputOption::VALUE_REQUIRED, 'Warmup requests before measuring', '5')
             ->addOption('base-url', null, InputOption::VALUE_REQUIRED, 'Replace {{base}} in scenario URLs')

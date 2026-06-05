@@ -1,29 +1,22 @@
 # Benchmark results
 
-Generated: **2026-06-04T14:30:00+00:00**
+Generated: **2026-06-04T23:51:21+00:00**
 
 ## Environment
 
 - **base_url:** http://varnish
-- **host:** benchmarklist-web-1
+- **host:** 2858bec62a07
 - **php:** 8.3.31
-- **note:** Sample results — re-run `./benchmarks/run.sh` for your environment
 
 ## Summary
 
 | Scenario | RPS | p50 (ms) | p95 (ms) | p99 (ms) | Errors |
 |----------|-----|----------|----------|----------|--------|
-| Category API via Varnish (warm cache) | 817 | 18.2 | 41.5 | 58.3 | 0 |
-| Category API via Varnish (cold / MISS) | 20.7 | 215.4 | 312.8 | 398.2 | 0 |
-| Category API direct to PHP (bypass Varnish) | 93.2 | 95.6 | 178.4 | 241.2 | 0 |
-| Search autocomplete (Elasticsearch, not cached) | 79.3 | 108.2 | 195.6 | 248.9 | 0 |
-| Homepage HTML (not API-cached) | 203.3 | 62.1 | 112.8 | 145.2 | 0 |
-
-## Takeaways
-
-- **Varnish (warm)** is ~8× faster RPS than direct PHP for the same JSON endpoint.
-- **Cold/MISS** latency reflects full Symfony + Doctrine path — similar order of magnitude to `origin_direct`.
-- **Elasticsearch** adds ~100ms+ p50 vs cached API — expected for uncached search.
+| Category API via Varnish (warm cache) | 8381.6 | 1.5 | 2.41 | 2.63 | 0 |
+| Category API via Varnish (cold / MISS) | 18.7 | 0.39 | 0.98 | 5351.34 | 0 |
+| Category API direct to PHP (bypass Varnish) | 5.9 | 1030.03 | 1782.68 | 1830.24 | 0 |
+| Search autocomplete (Elasticsearch, not cached) | 7.4 | 780.23 | 1417.35 | 1480.72 | 0 |
+| Homepage HTML (not API-cached) | 5.7 | 1520.18 | 2795.55 | 2838.79 | 0 |
 
 ## Details
 
@@ -31,33 +24,34 @@ Generated: **2026-06-04T14:30:00+00:00**
 
 - URL: `http://varnish/api/categories/sopas/items?page=1&limit=10`
 - Requests: 500 (concurrency 20, warmup 10)
-- Duration: 0.612s
-- Mean latency: 22.4ms
+- Duration: 0.06s
+- Mean latency: 1.63ms
 
 ### Category API via Varnish (cold / MISS)
 
-- URL: `http://varnish/api/categories/sopas/items?page=1&limit=10&_bench=sample`
+- URL: `http://varnish/api/categories/sopas/items?page=1&limit=10&_bench=d9afb592`
 - Requests: 100 (concurrency 5, warmup 0)
-- Duration: 4.821s
-- Mean latency: 228.6ms
+- Duration: 5.361s
+- Mean latency: 267.96ms
 
 ### Category API direct to PHP (bypass Varnish)
 
 - URL: `http://web/api/categories/sopas/items?page=1&limit=10`
 - Requests: 200 (concurrency 10, warmup 3)
-- Duration: 2.145s
-- Mean latency: 102.8ms
+- Duration: 33.744s
+- Mean latency: 1183.09ms
 
 ### Search autocomplete (Elasticsearch, not cached)
 
 - URL: `http://varnish/api/search/autocomplete?q=pa`
 - Requests: 150 (concurrency 10, warmup 5)
-- Duration: 1.892s
-- Mean latency: 118.5ms
+- Duration: 20.344s
+- Mean latency: 943.4ms
 
 ### Homepage HTML (not API-cached)
 
 - URL: `http://varnish/`
 - Requests: 200 (concurrency 15, warmup 3)
-- Duration: 0.984s
-- Mean latency: 68.4ms
+- Duration: 35.114s
+- Mean latency: 1612.82ms
+

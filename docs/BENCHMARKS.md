@@ -37,7 +37,7 @@ docker compose exec -u www-data web php bin/console app:benchmark \
 ```bash
 docker compose exec -u www-data web php bin/console app:benchmark \
   --url=http://varnish/api/categories/sopas/items?page=1 \
-  -n 300 -c 15 -w 5
+  --requests=300 -c 15 -w 5
 ```
 
 ## Apache Bench (optional)
