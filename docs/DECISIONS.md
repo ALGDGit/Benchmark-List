@@ -44,13 +44,9 @@ Disable with `FEATURE_ELASTICSEARCH=0` to compare latency / availability without
 
 - Runs inside Docker without installing `ab` / k6 on the host.
 - Same network as `varnish` and `web` services.
-- Outputs JSON + Markdown for CI artifacts and README tables.
+- Outputs JSON + Markdown reports under `benchmarks/results/`.
 
 Optional: `benchmarks/run-ab.sh` for Apache Bench if installed.
-
-## Security note
-
-Admin routes are **not authenticated** — intentional for a local benchmark demo. Do not expose publicly without adding Symfony Security.
 
 ## Feature flags
 

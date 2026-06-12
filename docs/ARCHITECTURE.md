@@ -1,9 +1,5 @@
 # Architecture
 
-## Goal
-
-Measure how Symfony behaves under load when caching and search layers are enabled or bypassed. The stack mirrors a typical production setup: **Varnish → PHP-FPM → MySQL**, with **Redis** (Symfony + activity log) and **Elasticsearch** (autocomplete).
-
 ## Request flow
 
 ```mermaid
